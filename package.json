@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@pelith/ethers-multicall": "^0.2.3",
+    "ethers": "^5.8.0",
+    "objects-to-csv": "^1.3.6"
+  }
+}
