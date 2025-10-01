@@ -16,8 +16,7 @@ var sleepTime = 1000; // ms
 
 
 const llamasNFT = "0xe127cE638293FA123Be79C25782a5652581Db234";
-const llamasNFTAbi = [
-    {
+const llamasNFTAbi = [{
         "stateMutability":"view",
         "type":"function",
         "name":"ownerOf",
@@ -27,22 +26,6 @@ const llamasNFTAbi = [
 
 const llamaLocker = "0x99c3f30Bbc9137F6E917B03C74aEd8a4309B3E1b";
 const llamaLockerAbi = [{
-        "stateMutability": "view",
-        "type": "function",
-        "inputs": [],
-        "name": "getLocks",
-        "outputs": [{
-            "components":[
-                {"internalType":"address","name":"owner","type":"address"},
-                {"internalType":"uint256","name":"lockedAt","type":"uint256"},
-                {"internalType":"uint256","name":"tokenId","type":"uint256"}
-            ],
-            "internalType":"struct LlamaLocker.NFTLock[]",
-            "name":"results",
-            "type":"tuple[]"
-        }]
-    },
-    {
         "stateMutability": "view",
         "type": "function",
         "inputs": [{"internalType": "uint256","name": "tokenId","type": "uint256"}
@@ -63,8 +46,7 @@ const llamaLockerAbi = [{
             "name": "tokenId",
             "type": "uint256"
         }]
-    },
-]
+    }]
 
 const NFT = new Contract(llamasNFT, llamasNFTAbi);
 const Locker = new Contract(llamaLocker, llamaLockerAbi);
@@ -89,7 +71,7 @@ async function main() {
     }
 
     // check if snapshot already exists
-    if(fs.existsSync(`llamasSnapshot_${targetBlock}.json`)) {
+    if(fs.existsSync(`./snapshots/llamasSnapshot_${targetBlock}.json`)) {
         console.log("Snapshot already completed at block "+targetBlock);
         process.exit();
     }
@@ -173,8 +155,29 @@ async function main() {
     // sort owners by locked
     owners = Object.fromEntries(Object.entries(owners).sort(([,a],[,b]) => b.locked - a.locked));
 
+    // sanity check that unlocked + locked = 1111
+    var totalUnlocked = 0;
+    var totalLocked = 0;
+    for(const [address, counts] of Object.entries(owners)) {
+        totalUnlocked += counts.unlocked;
+        totalLocked += counts.locked;
+    }
+    var total = totalUnlocked + totalLocked;
+    console.log(`Total unlocked NFTs: ${totalUnlocked}`);
+    console.log(`Total locked NFTs: ${totalLocked}`);
+    console.log(`Total NFTs accounted for: ${total} / 1111`);
+    if(total != 1111) {
+        console.log("Error: total NFTs does not equal 1111");
+        process.exit();
+    }
+
+    // cleanup for JSON
+    var jsondata = {}
+    for(const [address, counts] of Object.entries(owners)) {
+        jsondata[address] = [counts.unlocked, counts.locked]
+    }
     // Save to JSON
-    await fs.writeFileSync(`llamasSnapshot_${targetBlock}.json`, JSON.stringify(owners, null, 2));
+    await fs.writeFileSync(`./snapshots/llamasSnapshot_${targetBlock}.json`, JSON.stringify(jsondata, null, 2));
     console.log(`Saved ${Object.keys(owners).length} addresses to llamasSnapshot_${targetBlock}.json`);
 
     // Save to CSV
@@ -183,7 +186,7 @@ async function main() {
         csvData.push({address: address, unlocked: counts.unlocked, locked: counts.locked});
     }
     const csv = new ObjectsToCsv(csvData);
-    await csv.toDisk(`./llamasSnapshot_${targetBlock}.csv`);
+    await csv.toDisk(`./snapshots/llamasSnapshot_${targetBlock}.csv`);
     console.log(`Saved ${csvData.length} addresses to llamasSnapshot_${targetBlock}.csv`);
 }
 

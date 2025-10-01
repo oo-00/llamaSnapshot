@@ -10,3 +10,5 @@ Snapshot of Llama NFT holders and lockers
 `node snapshot <blockNumber>`
 
 Outputs sorted by locked llamas, in JSON and CSV formats
+
+CSV is labelled, JSON format is <address>: [<unlocked>, <locked>]
